@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#1e1e2e">
+<title>Калькулятор Pro</title>
+<style>
+  :root{
+    --bg:#1e1e2e; --panel:#2a2a3e; --fg:#e8e8f0; --muted:#888;
+    --accent:#7c5cff; --accent2:#00d4ff; --key:#33334a; --key-act:#4a4a6a;
+    --ok:#4ade80; --err:#ff6b6b;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+  html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;overflow:hidden}
+  .app{display:flex;flex-direction:column;height:100vh;height:100dvh;max-width:520px;margin:0 auto}
+  .tabs{display:flex;background:var(--panel);border-bottom:1px solid #0003}
+  .tab{flex:1;padding:12px;text-align:center;font-size:13px;cursor:pointer;color:var(--muted);
+    border-bottom:2px solid transparent;transition:.2s}
+  .tab.active{color:var(--fg);border-color:var(--accent)}
+  .view{flex:1;display:none;flex-direction:column;overflow:hidden}
+  .view.active{display:flex}
+  .display{padding:14px 16px 8px;background:linear-gradient(180deg,var(--panel),transparent)}
+  .expr{font-size:28px;font-weight:300;min-height:56px;outline:none;
+    padding:8px 4px;background:transparent;border:none;color:var(--fg);width:100%;text-align:right}
+  .preview{font-size:40px;font-weight:500;text-align:right;padding:4px 8px 10px;
+    color:var(--fg);min-height:52px;transition:color .2s}
+  .preview.err{color:var(--err);font-size:22px}
+  .preview.ok{color:var(--ok)}
+  .history{max-height:70px;overflow-y:auto;padding:0 12px 4px;font-size:12px;color:var(--muted)}
+  .history div{padding:2px 0;display:flex;justify-content:space-between;cursor:pointer}
+  .history div:active{color:var(--fg)}
+  .keys{flex:1;display:grid;grid-template-columns:repeat(5,1fr);gap:6px;padding:8px;
+    background:var(--panel);overflow-y:auto;align-content:end}
+  .key{background:var(--key);color:var(--fg);border:none;border-radius:14px;
+    font-size:18px;padding:14px 0;cursor:pointer;transition:.1s;
+    display:flex;align-items:center;justify-content:center;font-weight:400}
+  .key:active{background:var(--key-act);transform:scale(.95)}
+  .key.fn{font-size:14px;color:var(--accent2)}
+  .key.op{color:var(--accent);font-size:22px}
+  .key.eq{background:var(--accent);color:#fff;font-size:22px;font-weight:600}
+  .key.clr{color:var(--err)}
+  .tri{padding:14px;overflow-y:auto;flex:1}
+  .tri h3{margin:6px 0;color:var(--accent2);font-size:14px;text-transform:uppercase;letter-spacing:1px}
+  .tri-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px}
+  .tri input{background:var(--key);border:1px solid #fff1;color:var(--fg);
+    padding:10px;border-radius:10px;font-size:16px;width:100%;outline:none}
+  .tri input:focus{border-color:var(--accent)}
+  .tri input:disabled{opacity:.5}
+  .tri button{background:var(--accent);color:#fff;border:none;padding:12px;
+    border-radius:12px;font-size:15px;width:100%;margin-top:6px;cursor:pointer;font-weight:600}
+  .tri button:active{opacity:.8}
+  .tri svg{width:100%;height:220px;margin:10px 0;background:var(--key);border-radius:12px}
+  .tri .res{background:var(--key);border-radius:12px;padding:12px;margin-top:10px;font-size:14px;line-height:1.7}
+  .tri .res b{color:var(--accent2)}
+  .tri .mode{display:flex;gap:6px;margin-bottom:10px}
+  .tri .mode div{flex:1;text-align:center;padding:8px;background:var(--key);
+    border-radius:10px;font-size:12px;cursor:pointer;color:var(--muted)}
+  .tri .mode div.active{background:var(--accent);color:#fff}
+  .set{padding:16px;overflow-y:auto;flex:1}
+  .set h3{color:var(--accent2);font-size:13px;text-transform:uppercase;margin:14px 0 8px;letter-spacing:1px}
+  .themes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .theme{padding:14px 8px;border-radius:12px;text-align:center;font-size:12px;
+    cursor:pointer;border:2px solid transparent;transition:.2s}
+  .theme.active{border-color:var(--fg)}
+  .colors{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+  .colors label{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--muted)}
+  .colors input[type=color]{width:100%;height:44px;border:none;border-radius:10px;background:transparent;cursor:pointer}
+  .set .btn{background:var(--key);color:var(--fg);border:none;padding:12px;
+    border-radius:10px;width:100%;margin-top:10px;font-size:14px;cursor:pointer}
+  .set .btn:active{background:var(--key-act)}
+  .about{color:var(--muted);font-size:12px;text-align:center;padding:20px 0;line-height:1.6}
+</style>
+</head><body>
+<div class="app">
+  <div class="tabs">
+    <div class="tab active" data-view="calc">🧮 Калькулятор</div>
+    <div class="tab" data-view="tri">📐 Треугольник</div>
+    <div class="tab" data-view="set">🎨 Тема</div>
+  </div>
+
+  <div class="view active" id="view-calc">
+    <div class="display">
+      <input type="text" class="expr" id="expr" placeholder="0" autocomplete="off">
+      <div class="preview" id="preview">0</div>
+    </div>
+    <div class="history" id="history"></div>
+    <div class="keys" id="keys">
+      <button class="key clr" data-k="clear">AC</button>
+      <button class="key clr" data-k="back">⌫</button>
+      <button class="key op" data-k="(">(</button>
+      <button class="key op" data-k=")">)</button>
+      <button class="key op" data-k="/">÷</button>
+
+      <button class="key" data-k="7">7</button>
+      <button class="key" data-k="8">8</button>
+      <button class="key" data-k="9">9</button>
+      <button class="key fn" data-k="^2">x²</button>
+      <button class="key op" data-k="*">×</button>
+
+      <button class="key" data-k="4">4</button>
+      <button class="key" data-k="5">5</button>
+      <button class="key" data-k="6">6</button>
+      <button class="key fn" data-k="1/">1/x</button>
+      <button class="key op" data-k="-">−</button>
+
+      <button class="key" data-k="1">1</button>
+      <button class="key" data-k="2">2</button>
+      <button class="key" data-k="3">3</button>
+      <button class="key fn" data-k="%">%</button>
+      <button class="key op" data-k="+">+</button>
+
+      <button class="key" data-k="0">0</button>
+      <button class="key" data-k=".">.</button>
+      <button class="key eq" data-k="=">=</button>
+    </div>
+  </div>
+
+  <div class="view" id="view-tri">
+    <div class="tri">
+      <div class="mode" id="tri-mode">
+        <div class="active" data-m="ab">По катетам a, b</div>
+        <div data-m="ac">Катет a + гипотенуза c</div>
+        <div data-m="ang">Катет + угол</div>
+      </div>
+      <h3>Известные элементы</h3>
+      <div class="tri-row">
+        <input id="t-a" type="number" step="any" placeholder="a (катет)">
+        <input id="t-b" type="number" step="any" placeholder="b (катет)">
+        <input id="t-c" type="number" step="any" placeholder="c (гипот.)" disabled>
+      </div>
+      <div class="tri-row" id="ang-row" style="display:none">
+        <input id="t-ang" type="number" step="any" placeholder="Угол α, °">
+        <select id="t-ang-which" style="background:var(--key);color:var(--fg);border:1px solid #fff1;padding:10px;border-radius:10px;font-size:16px">
+          <option value="a">Угол напротив a</option>
+          <option value="b">Угол напротив b</option>
+        </select>
+      </div>
+      <button id="tri-calc">Рассчитать</button>
+      <svg id="tri-svg" viewBox="0 0 300 220"></svg>
+      <div class="res" id="tri-res" style="display:none"></div>
+    </div>
+  </div>
+
+  <div class="view" id="view-set">
+    <div class="set">
+      <h3>Готовые темы</h3>
+      <div class="themes" id="themes"></div>
+      <h3>Свои цвета</h3>
+      <div class="colors">
+        <label>Фон<input type="color" id="c-bg" value="#1e1e2e"></label>
+        <label>Акцент<input type="color" id="c-accent" value="#7c5cff"></label>
+      </div>
+      <button class="btn" id="apply-custom">Применить свои цвета</button>
+      <button class="btn" id="reset-theme">Сбросить тему</button>
+      <div class="about">Калькулятор Pro v1.1<br>Работает офлайн.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('.tab').forEach(t=>{
+  t.onclick=()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById('view-'+t.dataset.view).classList.add('active');
+  };
+});
+
+const THEMES={
+  night:  {name:'Ночь',    bg:'#1e1e2e',panel:'#2a2a3e',fg:'#e8e8f0',accent:'#7c5cff',accent2:'#00d4ff',key:'#33334a',keyAct:'#4a4a6a'},
+  day:    {name:'День',    bg:'#f5f5f7',panel:'#ffffff',fg:'#1a1a1a',accent:'#0066ff',accent2:'#0099cc',key:'#e5e5ea',keyAct:'#d1d1d6'},
+  ocean:  {name:'Океан',   bg:'#0a1929',panel:'#132f4c',fg:'#e3f2fd',accent:'#00bcd4',accent2:'#4fc3f7',key:'#173a5e',keyAct:'#1e4976'},
+  forest: {name:'Лес',     bg:'#1a2e1a',panel:'#2d4a2d',fg:'#e8f5e9',accent:'#66bb6a',accent2:'#aed581',key:'#3a5a3a',keyAct:'#4a6a4a'},
+  sunset: {name:'Закат',   bg:'#2d1b3d',panel:'#4a2c5e',fg:'#fce4ec',accent:'#ff6b9d',accent2:'#ffa726',key:'#5a3a6e',keyAct:'#6a4a7e'},
+  mono:   {name:'Моно',    bg:'#000000',panel:'#1a1a1a',fg:'#ffffff',accent:'#ffffff',accent2:'#aaaaaa',key:'#2a2a2a',keyAct:'#3a3a3a'},
+};
+function applyTheme(t){
+  const r=document.documentElement.style;
+  r.setProperty('--bg',t.bg);r.setProperty('--panel',t.panel);
+  r.setProperty('--fg',t.fg);r.setProperty('--accent',t.accent);
+  r.setProperty('--accent2',t.accent2);r.setProperty('--key',t.key);
+  r.setProperty('--key-act',t.keyAct);
+  r.setProperty('--muted',t.fg+'88');
+  document.querySelector('meta[name=theme-color]').content=t.bg;
+}
+const themesEl=document.getElementById('themes');
+let currentTheme=localStorage.getItem('theme')||'night';
+Object.entries(THEMES).forEach(([k,t])=>{
+  const d=document.createElement('div');
+  d.className='theme'+(k===currentTheme?' active':'');
+  d.textContent=t.name;
+  d.style.background=t.bg;d.style.color=t.fg;
+  d.onclick=()=>{
+    applyTheme(t);currentTheme=k;
+    localStorage.setItem('theme',k);
+    document.querySelectorAll('.theme').forEach(x=>x.classList.remove('active'));
+    d.classList.add('active');
+  };
+  themesEl.appendChild(d);
+});
+applyTheme(THEMES[currentTheme]||THEMES.night);
+
+document.getElementById('apply-custom').onclick=()=>{
+  const t={...THEMES.night,bg:cBg.value,accent:cAccent.value,
+    panel:shade(cBg.value,20),key:shade(cBg.value,30),keyAct:shade(cBg.value,45),
+    fg:isLight(cBg.value)?'#111':'#fff',accent2:cAccent.value};
+  applyTheme(t);localStorage.setItem('theme','custom');
+  document.querySelectorAll('.theme').forEach(x=>x.classList.remove('active'));
+};
+document.getElementById('reset-theme').onclick=()=>{
+  applyTheme(THEMES.night);localStorage.setItem('theme','night');
+  document.querySelectorAll('.theme').forEach((x,i)=>x.classList.toggle('active',i===0));
+};
+function shade(hex,p){const n=parseInt(hex.slice(1),16);
+  const r=Math.min(255,(n>>16)+p),g=Math.min(255,((n>>8)&255)+p),b=Math.min(255,(n&255)+p);
+  return '#'+((r<<16)|(g<<8)|b).toString(16).padStart(6,'0');}
+function isLight(h){const n=parseInt(h.slice(1),16);
+  return ((n>>16)*0.299+((n>>8)&255)*0.587+(n&255)*0.114)>150;}
+const cBg=document.getElementById('c-bg'),cAccent=document.getElementById('c-accent');
+
+function tokenize(s){
+  s=s.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-');
+  const toks=[];let i=0;
+  while(i<s.length){
+    const c=s[i];
+    if(/\s/.test(c)){i++;continue;}
+    if(/[0-9.]/.test(c)){
+      let n='';while(i<s.length&&/[0-9.]/.test(s[i]))n+=s[i++];
+      toks.push({t:'n',v:parseFloat(n)});continue;
+    }
+    if('+-*/^%(),'.includes(c)){toks.push({t:'o',v:c});i++;continue;}
+    throw new Error('Символ: '+c);
+  }
+  return toks;
+}
+
+function toRPN(toks){
+  const out=[],ops=[];
+  const prec={'+':1,'-':1,'*':2,'/':2,'%':2,'^':4};
+  const right={'^':true};
+  for(const t of toks){
+    if(t.t==='n')out.push(t);
+    else if(t.v==='(')ops.push(t);
+    else if(t.v===')'){
+      while(ops.length&&ops[ops.length-1].v!=='(')out.push(ops.pop());
+      if(!ops.length)throw new Error('Скобки');
+      ops.pop();
+    } else {
+      while(ops.length){
+        const top=ops[ops.length-1];
+        if(top.v==='(')break;
+        const tp=prec[top.v]||0;
+        const cp=prec[t.v]||0;
+        if(tp>cp||(tp===cp&&!right[t.v]))out.push(ops.pop());
+        else break;
+      }
+      ops.push(t);
+    }
+  }
+  while(ops.length){const o=ops.pop();if(o.v==='('||o.v===')')throw new Error('Скобки');out.push(o);}
+  return out;
+}
+
+function evalRPN(rpn){
+  const st=[];
+  for(const t of rpn){
+    if(t.t==='n')st.push(t.v);
+    else {
+      const b=st.pop(),a=st.pop();
+      let r;
+      switch(t.v){
+        case '+':r=a+b;break;case '-':r=a-b;break;
+        case '*':r=a*b;break;case '/':r=a/b;break;
+        case '^':r=Math.pow(a,b);break;
+        case '%':r=a%b;break;
+      }
+      st.push(r);
+    }
+  }
+  return st[0];
+}
+
+function calc(s){
+  if(!s||!s.trim())return null;
+  try{
+    const r=evalRPN(toRPN(tokenize(s)));
+    if(!isFinite(r))return '∞';
+    return Math.round(r*1e12)/1e12;
+  }catch(e){return null;}
+}
+
+const expr=document.getElementById('expr');
+const preview=document.getElementById('preview');
+const history=document.getElementById('history');
+let lastAns=0;
+
+function updatePreview(){
+  const text=expr.value.trim().replace(/\s+/g,'');
+  if(!text){preview.textContent='0';preview.className='preview';return;}
+  const r=calc(text);
+  if(r===null){preview.textContent='…';preview.className='preview';}
+  else if(r==='∞'){preview.textContent='∞';preview.className='preview err';}
+  else {
+    preview.textContent=formatNum(r);
+    preview.className='preview ok';
+    lastAns=r;
+  }
+}
+
+function formatNum(n){
+  if(Number.isInteger(n)&&Math.abs(n)<1e15)return n.toString();
+  const s=n.toPrecision(12);
+  return parseFloat(s).toString();
+}
+
+expr.addEventListener('input',updatePreview);
+expr.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){e.preventDefault();commit();}
+});
+
+function commit(){
+  const text=expr.value.trim();
+  if(!text)return;
+  const r=calc(text.replace(/\s+/g,''));
+  if(r===null||r==='∞')return;
+  const line=document.createElement('div');
+  line.innerHTML='<span>'+text+'</span><span>= '+formatNum(r)+'</span>';
+  line.onclick=()=>{expr.value=formatNum(r);updatePreview();};
+  history.prepend(line);
+  while(history.children.length>20)history.removeChild(history.lastChild);
+  lastAns=r;
+}
+
+document.getElementById('keys').addEventListener('click',e=>{
+  const b=e.target.closest('.key');if(!b)return;
+  const k=b.dataset.k;
+  if(navigator.vibrate)navigator.vibrate(10);
+  if(k==='clear'){expr.value='';updatePreview();expr.focus();return;}
+  if(k==='back'){
+    const pos=expr.selectionStart;
+    if(pos>0){
+      const t=expr.value;
+      expr.value=t.slice(0,pos-1)+t.slice(pos);
+      expr.setSelectionRange(pos-1,pos-1);
+      updatePreview();
+    }
+    expr.focus();return;
+  }
+  if(k==='='){commit();return;}
+  
+  const pos=expr.selectionStart;
+  const cur=expr.value;
+  
+  if(k==='^2'){
+    expr.value=cur.slice(0,pos)+'^2'+cur.slice(pos);
+    expr.setSelectionRange(pos+2,pos+2);
+  } else if(k==='1/'){
+    expr.value=cur.slice(0,pos)+'1/('+cur.slice(pos)+')';
+    expr.setSelectionRange(pos+3,pos+3);
+  } else {
+    expr.value=cur.slice(0,pos)+k+cur.slice(pos);
+    expr.setSelectionRange(pos+k.length,pos+k.length);
+  }
+  updatePreview();
+  expr.focus();
+});
+
+let triMode='ab';
+document.querySelectorAll('#tri-mode div').forEach(d=>{
+  d.onclick=()=>{
+    document.querySelectorAll('#tri-mode div').forEach(x=>x.classList.remove('active'));
+    d.classList.add('active');
+    triMode=d.dataset.m;
+    const a=document.getElementById('t-a'),b=document.getElementById('t-b'),c=document.getElementById('t-c');
+    const angRow=document.getElementById('ang-row');
+    a.disabled=false;b.disabled=false;c.disabled=false;
+    angRow.style.display='none';
+    if(triMode==='ab'){c.disabled=true;a.placeholder='a (катет)';b.placeholder='b (катет)';}
+    if(triMode==='ac'){b.disabled=true;a.placeholder='a (катет)';c.placeholder='c (гипотенуза)';}
+    if(triMode==='ang'){b.disabled=true;c.disabled=true;angRow.style.display='grid';a.placeholder='a или b';}
+  };
+});
+
+document.getElementById('tri-calc').onclick=()=>{
+  const a=parseFloat(document.getElementById('t-a').value);
+  const b=parseFloat(document.getElementById('t-b').value);
+  const c=parseFloat(document.getElementById('t-c').value);
+  const ang=parseFloat(document.getElementById('t-ang').value);
+  const angWhich=document.getElementById('t-ang-which').value;
+  let A,B,C,aa,bb,cc;C=Math.PI/2;
+  if(triMode==='ab'){
+    if(!isFinite(a)||!isFinite(b)||a<=0||b<=0){alert('Введите a и b > 0');return;}
+    aa=a;bb=b;cc=Math.hypot(a,b);
+  } else if(triMode==='ac'){
+    if(!isFinite(a)||!isFinite(c)||a<=0||c<=0||a>=c){alert('a < c');return;}
+    aa=a;cc=c;bb=Math.sqrt(c*c-a*a);
+  } else {
+    if(!isFinite(a)||!isFinite(ang)||a<=0||ang<=0||ang>=90){alert('Сторона и угол 0°<α<90°');return;}
+    const ar=ang*Math.PI/180;
+    if(angWhich==='a'){aa=a;bb=a/Math.tan(ar);cc=a/Math.sin(ar);}
+    else {bb=a;aa=a*Math.tan(ar);cc=a/Math.cos(ar);}
+  }
+  A=Math.atan(aa/cc);B=Math.atan(bb/cc);
+  const P=aa+bb+cc,S=aa*bb/2,r=(aa+bb-cc)/2,R=cc/2;
+  drawTriangle(aa,bb,cc);
+  const res=document.getElementById('tri-res');
+  res.style.display='block';
+  res.innerHTML=`
+    <b>Стороны:</b> a = ${fmt(aa)}, b = ${fmt(bb)}, c = ${fmt(cc)}<br>
+    <b>Углы:</b> α = ${fmt(A*180/Math.PI)}°, β = ${fmt(B*180/Math.PI)}°, γ = 90°<br>
+    <b>Периметр:</b> P = ${fmt(P)}<br>
+    <b>Площадь:</b> S = ${fmt(S)}<br>
+    <b>Радиус вписанной:</b> r = ${fmt(r)}<br>
+    <b>Радиус описанной:</b> R = ${fmt(R)}<br>
+    <b>Высота к гипотенузе:</b> h = ${fmt(S*2/cc)}<br>
+    <b>Медиана к гипотенузе:</b> m = ${fmt(cc/2)}
+  `;
+};
+
+function fmt(n){return Math.round(n*1e6)/1e6;}
+
+function drawTriangle(a,b,c){
+  const svg=document.getElementById('tri-svg');
+  const W=300,H=220,pad=30;
+  const scale=Math.min((W-pad*2)/b,(H-pad*2)/a);
+  const x0=pad,y0=H-pad;
+  const x1=x0+b*scale,y1=y0;
+  const x2=x0,y2=y0-a*scale;
+  const accent=getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+  const accent2=getComputedStyle(document.documentElement).getPropertyValue('--accent2').trim();
+  const fg=getComputedStyle(document.documentElement).getPropertyValue('--fg').trim();
+  svg.innerHTML=`
+    <polygon points="${x0},${y0} ${x1},${y1} ${x2},${y2}" fill="${accent}22" stroke="${accent}" stroke-width="2"/>
+    <rect x="${x0}" y="${y0-12}" width="12" height="12" fill="none" stroke="${fg}" stroke-width="1"/>
+    <text x="${(x0+x1)/2}" y="${y0+18}" fill="${fg}" font-size="13" text-anchor="middle">b = ${fmt(b)}</text>
+    <text x="${x0-14}" y="${(y0+y2)/2}" fill="${fg}" font-size="13" text-anchor="middle" transform="rotate(-90 ${x0-14} ${(y0+y2)/2})">a = ${fmt(a)}</text>
+    <text x="${(x1+x2)/2+10}" y="${(y1+y2)/2}" fill="${accent2}" font-size="13">c = ${fmt(c)}</text>
+    <text x="${x0+8}" y="${y0-4}" fill="${fg}" font-size="11">90°</text>
+  `;
+}
+
+updatePreview();
+expr.focus();
+</script>
+</body>
+</html>
